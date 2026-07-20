@@ -1,0 +1,385 @@
+<!-- A Voting System Built By David OLuwaniyi -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Access — COSSA Vote</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:      '#2B1B12',
+          ink2:     '#3E2A1B',
+          ink3:     '#4A331F',
+          paper:    '#FFFFFF',
+          paperdim: '#D8BFA0',
+          gold:     '#C08A52',
+          teal:     '#8B5A34',
+          ballotred:'#5C3A21',
+        },
+        fontFamily: {
+          serif: ['Fraunces', 'serif'],
+          mono:  ['IBM Plex Mono', 'monospace'],
+          sans:  ['Inter', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+
+<style>
+  :root{
+    --ink:#2B1B12; --ink2:#3E2A1B; --paper:#FFFFFF; --gold:#C08A52; --teal:#8B5A34; --red:#5C3A21;
+  }
+  html{scroll-behavior:smooth;}
+  body{background:var(--ink); font-family:'Inter',sans-serif;}
+
+  .status-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--red);
+    box-shadow:0 0 0 0 rgba(92,58,33,0.6);
+    animation:pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(92,58,33,0.55);}
+    70%{box-shadow:0 0 0 7px rgba(92,58,33,0);}
+    100%{box-shadow:0 0 0 0 rgba(92,58,33,0);}
+  }
+
+  /* Restricted-access terminal panel — the admin signature element */
+  .terminal{
+    background: linear-gradient(180deg, #241609 0%, #1D1207 100%);
+    border: 1px solid rgba(192,138,82,0.25);
+    position: relative;
+    box-shadow: 0 30px 70px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,0,0,0.2);
+  }
+  .terminal::before{
+    content:"";
+    position:absolute; inset:10px;
+    border: 1px dashed rgba(192,138,82,0.18);
+    pointer-events:none;
+  }
+
+  .hazard-strip{
+    height: 6px;
+    background: repeating-linear-gradient(
+      135deg,
+      var(--gold) 0px, var(--gold) 10px,
+      transparent 10px, transparent 20px
+    );
+    opacity:0.9;
+  }
+
+  .field-input{
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(216,191,160,0.25);
+    color: #F3E9DC;
+    transition: border-color .2s ease, background .2s ease;
+  }
+  .field-input:focus{
+    outline:none;
+    border-color: var(--gold);
+    background: rgba(255,255,255,0.05);
+  }
+  .field-input::placeholder{ color: rgba(216,191,160,0.35); }
+
+  .focus-ring:focus-visible{
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+  }
+
+  .scan-line{
+    background: linear-gradient(90deg, transparent, rgba(192,138,82,0.6), transparent);
+    height:1px;
+    animation: scan 3.2s linear infinite;
+  }
+  @keyframes scan{
+    0%{ transform: translateY(0); opacity:0; }
+    10%{ opacity:1; }
+    90%{ opacity:1; }
+    100%{ transform: translateY(220px); opacity:0; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .status-dot{ animation:none; }
+    .scan-line{ animation:none; display:none; }
+  }
+
+  ::selection{ background: var(--gold); color: var(--ink); }
+</style>
+</head>
+
+<body class="text-paper antialiased min-h-screen flex flex-col">
+
+<!-- ===================== NAV ===================== -->
+<header class="border-b border-white/10 bg-ink/90">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 focus-ring rounded">
+      <span class="font-mono text-teal text-lg">&gt;</span>
+      <span class="font-mono font-semibold tracking-tight text-paper">COSSA<span class="text-gold">_</span>VOTE</span>
+    </a>
+    <div class="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-paperdim">
+      <span class="status-dot"></span>
+      Restricted area
+    </div>
+  </div>
+</header>
+
+<!-- ===================== MAIN ===================== -->
+<main class="flex-1 flex items-center justify-center px-6 py-16">
+  <div class="w-full max-w-md">
+
+    <div class="text-center mb-8">
+      <p class="font-mono text-[12px] uppercase tracking-widest text-teal">Electoral committee</p>
+      <h1 class="font-serif text-3xl md:text-4xl mt-2 text-paper">Administrator access</h1>
+      <p class="text-paperdim text-sm mt-3 leading-relaxed">
+        This panel is limited to members of the COSSA Electoral Committee. All sign-ins are logged and timestamped.
+      </p>
+    </div>
+
+    <div class="terminal rounded-sm overflow-hidden relative">
+      <div class="hazard-strip"></div>
+
+      <div class="relative px-7 py-8 overflow-hidden">
+        <div class="scan-line absolute left-0 right-0"></div>
+
+        <div class="flex items-center justify-between mb-6">
+          <span class="font-mono text-[11px] uppercase tracking-widest text-gold">Auth_Terminal</span>
+          <span class="font-mono text-[11px] text-paperdim" id="clock">--:--:--</span>
+        </div>
+
+        <form id="adminLoginForm" class="space-y-5" novalidate>
+          <div>
+            <label for="adminId" class="block font-mono text-[11px] uppercase tracking-widest text-paperdim mb-2">
+              Admin ID
+            </label>
+            <input
+              type="text"
+              id="adminId"
+              name="adminId"
+              autocomplete="username"
+              placeholder="e.g. COSSA-ADM-014"
+              class="field-input focus-ring w-full rounded-sm px-4 py-3 font-mono text-sm"
+              required
+            >
+          </div>
+
+          <div>
+            <label for="password" class="block font-mono text-[11px] uppercase tracking-widest text-paperdim mb-2">
+              Password
+            </label>
+            <div class="relative">
+              <input
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                placeholder="••••••••••"
+                class="field-input focus-ring w-full rounded-sm px-4 py-3 pr-12 font-mono text-sm"
+                required
+              >
+              <button
+                type="button"
+                id="togglePassword"
+                aria-label="Show password"
+                class="focus-ring absolute right-3 top-1/2 -translate-y-1/2 text-paperdim hover:text-paper transition-colors"
+              >
+                <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12c1.292 4.338 5.31 7.5 10.066 7.5.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.774 3.162 10.066 7.5a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label for="otp" class="block font-mono text-[11px] uppercase tracking-widest text-paperdim mb-2">
+              Verification code
+            </label>
+            <input
+              type="text"
+              id="otp"
+              name="otp"
+              inputmode="numeric"
+              maxlength="6"
+              placeholder="6-digit code"
+              class="field-input focus-ring w-full rounded-sm px-4 py-3 font-mono text-sm tracking-[0.3em]"
+              required
+            >
+            <p class="font-mono text-[11px] text-paperdim/70 mt-2">Sent to your registered committee email.</p>
+          </div>
+
+          <p id="errorMsg" class="hidden font-mono text-[12px] text-gold bg-gold/10 border border-gold/30 rounded-sm px-4 py-2.5"></p>
+          <p id="okMsg" class="hidden font-mono text-[12px] text-teal bg-teal/10 border border-teal/30 rounded-sm px-4 py-2.5"></p>
+
+          <button
+            type="button"
+            id="sendCodeBtn"
+            class="focus-ring w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-sm border border-white/20 text-paper hover:border-white/40 transition-colors font-mono text-sm uppercase tracking-wide"
+          >
+            Send verification code
+          </button>
+
+          <button
+            type="submit"
+            id="authenticateBtn"
+            disabled
+            class="focus-ring w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-sm bg-gold text-ink font-semibold hover:bg-gold/90 transition-colors font-mono text-sm uppercase tracking-wide disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Authenticate
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+          </button>
+        </form>
+
+        <div class="mt-6 pt-6 border-t border-white/10 flex items-center justify-between font-mono text-[11px] text-paperdim">
+          <a href="/login.html" class="hover:text-paper transition-colors focus-ring rounded">← Student login</a>
+          <span>SESSION_LOG: ACTIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-center font-mono text-[11px] text-paperdim/60 mt-6 leading-relaxed">
+      Unauthorized access attempts are recorded and reported to the Department of Computer Science.
+    </p>
+  </div>
+</main>
+
+<footer class="border-t border-white/10">
+  <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-2">
+    <div class="flex items-center gap-2">
+      <span class="font-mono text-teal">&gt;</span>
+      <span class="font-mono font-semibold text-paper text-sm">COSSA_VOTE</span>
+    </div>
+    <p class="text-paperdim text-xs font-mono">© 2026 COSSA Electoral Committee</p>
+  </div>
+</footer>
+
+<script>
+  // Live clock
+  const clockEl = document.getElementById('clock');
+  function updateClock(){
+    const now = new Date();
+    clockEl.textContent = now.toLocaleTimeString('en-GB', { hour12:false });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Password visibility toggle
+  const toggleBtn = document.getElementById('togglePassword');
+  const passwordInput = document.getElementById('password');
+  const eyeOpen = document.getElementById('eyeOpen');
+  const eyeClosed = document.getElementById('eyeClosed');
+
+  toggleBtn.addEventListener('click', () => {
+    const isPassword = passwordInput.type === 'password';
+    passwordInput.type = isPassword ? 'text' : 'password';
+    eyeOpen.classList.toggle('hidden', isPassword);
+    eyeClosed.classList.toggle('hidden', !isPassword);
+    toggleBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+  });
+
+  // OTP: numeric only
+  document.getElementById('otp').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '');
+  });
+
+  // Point this at your running backend (see backend/README.md).
+  const API_BASE = 'https://cossa-vote-website-2.onrender.com/api';
+
+  const form = document.getElementById('adminLoginForm');
+  const errorMsg = document.getElementById('errorMsg');
+  const okMsg = document.getElementById('okMsg');
+  const sendCodeBtn = document.getElementById('sendCodeBtn');
+  const authenticateBtn = document.getElementById('authenticateBtn');
+
+  function showError(message){
+    okMsg.classList.add('hidden');
+    errorMsg.textContent = `ERROR: ${message}`;
+    errorMsg.classList.remove('hidden');
+  }
+  function showOk(message){
+    errorMsg.classList.add('hidden');
+    okMsg.textContent = message;
+    okMsg.classList.remove('hidden');
+  }
+
+  // Step 1: verify Admin ID + password, trigger the emailed OTP.
+  sendCodeBtn.addEventListener('click', async () => {
+    const adminId = document.getElementById('adminId').value.trim();
+    const password = passwordInput.value;
+
+    if (!adminId || !password) {
+      showError('Enter your Admin ID and password first.');
+      return;
+    }
+
+    sendCodeBtn.disabled = true;
+    sendCodeBtn.textContent = 'Sending…';
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/login/request-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not send code.');
+
+      showOk(data.message || 'Code sent — check your email.');
+      authenticateBtn.disabled = false;
+      document.getElementById('otp').focus();
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      sendCodeBtn.disabled = false;
+      sendCodeBtn.textContent = 'Send verification code';
+    }
+  });
+
+  // Step 2: verify the OTP and log in.
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.classList.add('hidden');
+
+    const adminId = document.getElementById('adminId').value.trim();
+    const otp = document.getElementById('otp').value;
+
+    if (!adminId || otp.length !== 6) {
+      showError('Enter your Admin ID and the 6-digit code sent to your email.');
+      return;
+    }
+
+    authenticateBtn.disabled = true;
+    authenticateBtn.textContent = 'Authenticating…';
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/login/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId, otp }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Invalid or expired code.');
+
+      localStorage.setItem('cossaAdminToken', data.token);
+      localStorage.setItem('cossaAdminName', data.name);
+      window.location.href = '/admin-dashboard.html';
+    } catch (err) {
+      showError(err.message);
+      authenticateBtn.disabled = false;
+      authenticateBtn.textContent = 'Authenticate';
+    }
+  });
+</script>
+</body>
+</html>

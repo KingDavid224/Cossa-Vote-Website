@@ -1,0 +1,709 @@
+<!-- A Voting System Built By David OLuwaniyi -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard — COSSA Vote</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:      '#2B1B12',
+          ink2:     '#3E2A1B',
+          ink3:     '#4A331F',
+          paper:    '#FFFFFF',
+          paperdim: '#D8BFA0',
+          gold:     '#C08A52',
+          teal:     '#8B5A34',
+          ballotred:'#5C3A21',
+          good:     '#7A9B6E',
+        },
+        fontFamily: {
+          serif: ['Fraunces', 'serif'],
+          mono:  ['IBM Plex Mono', 'monospace'],
+          sans:  ['Inter', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+
+<style>
+  :root{
+    --ink:#2B1B12; --ink2:#3E2A1B; --paper:#FFFFFF; --gold:#C08A52; --teal:#8B5A34; --red:#5C3A21;
+  }
+  html{scroll-behavior:smooth;}
+  body{background:var(--ink); font-family:'Inter',sans-serif;}
+
+  .status-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--red);
+    box-shadow:0 0 0 0 rgba(92,58,33,0.6);
+    animation:pulse 1.8s infinite;
+  }
+  .status-dot.voted{ background:#7A9B6E; box-shadow:0 0 0 0 rgba(122,155,110,0.6); }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(92,58,33,0.55);}
+    70%{box-shadow:0 0 0 7px rgba(92,58,33,0);}
+    100%{box-shadow:0 0 0 0 rgba(92,58,33,0);}
+  }
+
+  .focus-ring:focus-visible{
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+  }
+
+  .panel{
+    background: var(--ink2);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .card-hover{ transition: transform .25s ease, border-color .25s ease; }
+  .card-hover:hover{ transform: translateY(-3px); border-color: rgba(192,138,82,0.4); }
+
+  .tab-btn{
+    transition: color .15s ease, border-color .15s ease;
+    border-bottom: 2px solid transparent;
+  }
+  .tab-btn.active{
+    color:#F3E9DC;
+    border-color: var(--gold);
+  }
+  .tab-btn:not(.active){ color: var(--paperdim, #D8BFA0); }
+  .tab-btn:not(.active):hover{ color:#F3E9DC; }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* Ballot option (radio-styled) */
+  .ballot-option{
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.02);
+    transition: border-color .15s ease, background .15s ease;
+    cursor: pointer;
+  }
+  .ballot-option:hover{ border-color: rgba(192,138,82,0.4); }
+  .ballot-option.selected{
+    border-color: var(--gold);
+    background: rgba(192,138,82,0.08);
+  }
+  .ballot-tick{
+    width: 20px; height:20px;
+    border: 1.5px solid rgba(216,191,160,0.5);
+    border-radius: 4px;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .ballot-option.selected .ballot-tick{
+    background: var(--gold);
+    border-color: var(--gold);
+  }
+
+  /* Receipt (student-facing, warm ballot style, matches homepage) */
+  .receipt{
+    background: var(--paper);
+    color: var(--ink);
+    position: relative;
+    font-family:'IBM Plex Mono', monospace;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .receipt::before, .receipt::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; height:14px;
+    background-image: radial-gradient(circle at 10px 50%, transparent 6px, var(--paper) 6.5px);
+    background-size: 20px 14px;
+    background-repeat: repeat-x;
+  }
+  .receipt::before{ top:-7px; }
+  .receipt::after{ bottom:-7px; transform: rotate(180deg); }
+  .tick-line{ border-top:1px dashed rgba(43,27,18,0.25); }
+  .barcode{
+    height: 34px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--ink) 0px, var(--ink) 2px,
+      transparent 2px, transparent 5px,
+      var(--ink) 5px, var(--ink) 6px,
+      transparent 6px, transparent 10px,
+      var(--ink) 10px, var(--ink) 13px,
+      transparent 13px, transparent 15px
+    );
+    opacity:0.85;
+  }
+
+  ::selection{ background: var(--gold); color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce){
+    .status-dot{ animation:none; }
+  }
+</style>
+</head>
+
+<body class="text-paper antialiased min-h-screen flex flex-col">
+
+<!-- ===================== NAV ===================== -->
+<header class="sticky top-0 z-50 border-b border-white/10 backdrop-blur bg-ink/90">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 focus-ring rounded">
+      <span class="font-mono text-teal text-lg">&gt;</span>
+      <span class="font-mono font-semibold tracking-tight text-paper">COSSA<span class="text-gold">_</span>VOTE</span>
+    </a>
+
+    <div class="flex items-center gap-4">
+      <div class="hidden sm:flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-paperdim">
+        <span class="status-dot" id="navStatusDot"></span>
+        <span id="navStatusText">Not yet voted</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="h-8 w-8 rounded-full bg-teal/20 border border-teal/40 flex items-center justify-center text-gold text-xs font-mono">JD</div>
+        <button id="logoutBtn" class="focus-ring font-mono text-[12px] uppercase tracking-wide text-paperdim hover:text-paper transition-colors">
+          Log out
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="max-w-6xl mx-auto px-6 flex gap-6 font-mono text-[13px] uppercase tracking-wide overflow-x-auto">
+    <button data-view="overview" class="tab-btn active focus-ring px-1 py-3 whitespace-nowrap">Overview</button>
+    <button data-view="candidates" class="tab-btn focus-ring px-1 py-3 whitespace-nowrap">Candidates</button>
+    <button data-view="vote" class="tab-btn focus-ring px-1 py-3 whitespace-nowrap">Cast your vote</button>
+    <button data-view="receipt" class="tab-btn focus-ring px-1 py-3 whitespace-nowrap">Receipt</button>
+    <button data-view="results" class="tab-btn focus-ring px-1 py-3 whitespace-nowrap">Results</button>
+  </div>
+</header>
+
+<main class="flex-1 max-w-6xl w-full mx-auto px-6 py-10">
+
+  <!-- ============ OVERVIEW ============ -->
+  <section id="view-overview" class="view active">
+    <div class="grid md:grid-cols-3 gap-6">
+
+      <div class="md:col-span-2 panel rounded-sm p-6">
+        <p class="font-mono text-[11px] uppercase tracking-widest text-teal">Student profile</p>
+        <h2 id="studentNameHeading" class="font-serif text-2xl mt-2 text-paper">Jennifer Danladi</h2>
+        <dl class="grid sm:grid-cols-2 gap-4 mt-6 font-mono text-[13px]">
+          <div>
+            <dt class="text-paperdim text-[11px] uppercase tracking-widest">Matric number</dt>
+            <dd id="studentMatric" class="text-paper mt-1">—</dd>
+          </div>
+          <div>
+            <dt class="text-paperdim text-[11px] uppercase tracking-widest">Level</dt>
+            <dd id="studentLevel" class="text-paper mt-1">—</dd>
+          </div>
+          <div>
+            <dt class="text-paperdim text-[11px] uppercase tracking-widest">Department email</dt>
+            <dd id="studentEmail" class="text-paper mt-1">—</dd>
+          </div>
+          <div>
+            <dt class="text-paperdim text-[11px] uppercase tracking-widest">Eligibility</dt>
+            <dd class="text-good mt-1">Verified &amp; eligible</dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="panel rounded-sm p-6 flex flex-col justify-between">
+        <div>
+          <p class="font-mono text-[11px] uppercase tracking-widest text-paperdim">Voting status</p>
+          <p id="overviewStatus" class="font-serif text-xl text-gold mt-2">Not yet voted</p>
+          <p id="overviewStatusSub" class="text-paperdim text-sm mt-2 leading-relaxed">You have one ballot to cast across 6 positions. It takes about three minutes.</p>
+        </div>
+        <button id="overviewCta" class="focus-ring mt-6 w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-sm bg-gold text-ink font-semibold hover:bg-gold/90 transition-colors font-mono text-[12px] uppercase tracking-wide">
+          Go to ballot
+        </button>
+      </div>
+    </div>
+
+    <div class="panel rounded-sm p-6 mt-6">
+      <h2 class="font-serif text-lg text-paper mb-4">Election timeline</h2>
+      <div class="grid sm:grid-cols-3 gap-4 font-mono text-[13px]">
+        <div class="border-l-2 border-good pl-4">
+          <p class="text-paperdim text-[11px] uppercase tracking-widest">Opened</p>
+          <p class="text-paper mt-1" id="timelineOpens">—</p>
+        </div>
+        <div class="border-l-2 border-gold pl-4">
+          <p class="text-paperdim text-[11px] uppercase tracking-widest">Closes</p>
+          <p class="text-paper mt-1" id="timelineCloses">—</p>
+        </div>
+        <div class="border-l-2 border-white/20 pl-4" id="timelineCertifiedRow">
+          <p class="text-paperdim text-[11px] uppercase tracking-widest">Results certified</p>
+          <p class="text-paper mt-1" id="timelineCertified">Not yet</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CANDIDATES ============ -->
+  <section id="view-candidates" class="view">
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <p class="text-paperdim text-sm max-w-md">Review candidate manifestos before you vote. Filter by position below.</p>
+      <select id="positionFilter" class="field-select panel focus-ring rounded-sm px-4 py-2.5 font-mono text-[13px] text-paper">
+        <option value="all">All positions</option>
+      </select>
+    </div>
+    <div id="candidatesGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- injected by JS -->
+    </div>
+  </section>
+
+  <!-- ============ CAST VOTE ============ -->
+  <section id="view-vote" class="view">
+    <div id="voteLockedNotice" class="hidden panel rounded-sm p-6 mb-6 border-l-2 border-good">
+      <p class="font-serif text-lg text-paper">You've already voted</p>
+      <p class="text-paperdim text-sm mt-1">Your ballot was recorded. View your receipt for confirmation details.</p>
+    </div>
+
+    <form id="ballotForm">
+      <div id="ballotPositions" class="space-y-8">
+        <!-- injected by JS -->
+      </div>
+
+      <div class="mt-8 flex items-center justify-between panel rounded-sm p-5">
+        <p id="ballotProgress" class="font-mono text-[13px] text-paperdim">0 of 6 positions selected</p>
+        <button type="submit" id="submitBallotBtn" class="focus-ring inline-flex items-center gap-2 px-6 py-3 rounded-sm bg-gold text-ink font-semibold hover:bg-gold/90 transition-colors font-mono text-[13px] uppercase tracking-wide disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+          Submit ballot
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ============ RECEIPT ============ -->
+  <section id="view-receipt" class="view">
+    <div id="receiptEmpty" class="text-center py-20">
+      <p class="font-serif text-xl text-paper">No receipt yet</p>
+      <p class="text-paperdim text-sm mt-2">Cast your ballot to generate a vote receipt.</p>
+    </div>
+
+    <div id="receiptContent" class="hidden flex justify-center">
+      <div class="receipt w-full max-w-sm px-6 py-8 rounded-[2px]">
+        <div class="text-center">
+          <p class="text-[11px] uppercase tracking-[0.2em] text-ink/60">Department of Computer Science</p>
+          <p class="text-sm font-semibold uppercase tracking-wide mt-1">Official Ballot — General Election</p>
+        </div>
+        <div class="tick-line my-4"></div>
+        <ul id="receiptList" class="space-y-3 text-[13px]">
+          <!-- injected by JS -->
+        </ul>
+        <div class="tick-line my-4"></div>
+        <div class="flex items-center justify-between text-[11px] text-ink/60">
+          <span id="receiptVoteId">VOTE_ID: ----</span>
+          <span id="receiptTimestamp">--:--:--</span>
+        </div>
+        <div class="barcode mt-4"></div>
+        <p class="text-center text-[10px] uppercase tracking-[0.3em] text-ink/50 mt-3">Anonymous · Verified · Counted</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section id="view-results" class="view">
+    <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+      <div>
+        <p class="text-paperdim text-sm max-w-md">Live results </p>
+      </div>
+      <div id="resultsStatusBadge" class="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-teal border border-teal/30 bg-teal/10 rounded-full px-3 py-1.5 whitespace-nowrap">
+        <span class="status-dot"></span>
+        <span id="resultsStatusText">Loading…</span>
+      </div>
+    </div>
+
+    <div id="winnerBanner" class="hidden mb-6 border border-gold/40 bg-gold/10 rounded-sm p-6">
+      <p class="font-mono text-[11px] uppercase tracking-widest text-gold">Election closed</p>
+      <h3 class="font-serif text-2xl mt-2 text-paper">Winners have been announced 🏆</h3>
+      <div id="winnerList" class="mt-5 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <!-- injected by JS -->
+      </div>
+    </div>
+
+    <div id="resultsGrid" class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <p class="text-paperdim text-sm">Loading live results…</p>
+    </div>
+
+    <p class="text-paperdim text-xs font-mono mt-8">Total votes cast so far: <span id="resultsTotalVotes">—</span></p>
+  </section>
+
+</main>
+
+<footer class="border-t border-white/10">
+  <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-2">
+    <div class="flex items-center gap-2">
+      <span class="font-mono text-teal">&gt;</span>
+      <span class="font-mono font-semibold text-paper text-sm">COSSA_VOTE</span>
+    </div>
+    <p class="text-paperdim text-xs font-mono">© 2026 COSSA Electoral Committee</p>
+  </div>
+</footer>
+
+<script>
+  // Point this at your running backend (see backend/README.md).
+  const API_BASE = 'https://cossa-vote-website-2.onrender.com/api';
+
+  // ---------- Auth guard ----------
+  // Only students who completed registration + login (and hold a valid
+  // token) reach this page. Anyone without one is bounced back to login.
+  const authToken = localStorage.getItem('cossaVoterToken');
+  if (!authToken) {
+    window.location.href = 'login.html';
+    throw new Error('Not authenticated'); // stop the rest of this script from running
+  }
+  const voterName = localStorage.getItem('cossaVoterName') || 'Student';
+  document.addEventListener('DOMContentLoaded', () => {
+    const heading = document.getElementById('studentNameHeading');
+    if (heading) heading.textContent = voterName;
+  });
+
+  async function apiRequest(path, options = {}) {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+        ...(options.headers || {}),
+      },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      localStorage.removeItem('cossaVoterToken');
+      localStorage.removeItem('cossaVoterName');
+      window.location.href = 'login.html';
+      throw new Error('Session expired');
+    }
+    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+    return data;
+  }
+
+  // ---------- Tab navigation ----------
+  const views = document.querySelectorAll('.view');
+  const tabs = document.querySelectorAll('.tab-btn');
+
+  function switchView(name){
+    views.forEach(v => v.classList.toggle('active', v.id === `view-${name}`));
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.view === name));
+  }
+  tabs.forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
+
+  document.getElementById('overviewCta').addEventListener('click', () => switchView('vote'));
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('cossaVoterToken');
+    localStorage.removeItem('cossaVoterName');
+    window.location.href = 'login.html';
+  });
+
+  // ---------- Ballot data (loaded from the backend) ----------
+  // positions: [{ id, name, candidates: [{ id, name }] }]
+  let positions = [];
+  let hasVoted = false;
+  const selections = {}; // { positionId: candidateId }
+
+  const candidatesGrid = document.getElementById('candidatesGrid');
+  const positionFilter = document.getElementById('positionFilter');
+
+  function renderCandidatesGrid(filter = 'all'){
+    const flat = positions.flatMap(p => p.candidates.map(c => ({ ...c, position: p.name })));
+    const list = filter === 'all' ? flat : flat.filter(c => c.position === filter);
+    candidatesGrid.innerHTML = list.map(c => `
+      <div class="card-hover panel rounded-sm p-5">
+        <p class="font-mono text-[11px] uppercase tracking-widest text-gold">${c.position}</p>
+        <h3 class="font-serif text-lg mt-2 text-paper">${c.name}</h3>
+      </div>
+    `).join('') || `<p class="text-paperdim text-sm">No candidates to show yet.</p>`;
+  }
+  positionFilter.addEventListener('change', (e) => renderCandidatesGrid(e.target.value));
+
+  const ballotPositions = document.getElementById('ballotPositions');
+  const ballotProgress = document.getElementById('ballotProgress');
+  const submitBallotBtn = document.getElementById('submitBallotBtn');
+  const voteLockedNotice = document.getElementById('voteLockedNotice');
+  const ballotForm = document.getElementById('ballotForm');
+
+  function renderBallot(){
+    ballotPositions.innerHTML = positions.map(pos => {
+      const options = pos.candidates.map(c => `
+        <div class="ballot-option rounded-sm p-4 flex items-center gap-4" data-position-id="${pos.id}" data-candidate-id="${c.id}">
+          <div class="ballot-tick">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-ink hidden tick-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          </div>
+          <div>
+            <p class="text-paper text-sm font-medium">${c.name}</p>
+          </div>
+        </div>
+      `).join('') || `<p class="text-paperdim text-sm col-span-2">No approved candidates for this position yet.</p>`;
+      return `
+        <div>
+          <h3 class="font-serif text-lg text-paper mb-3">${pos.name}</h3>
+          <div class="grid sm:grid-cols-2 gap-3">${options}</div>
+        </div>
+      `;
+    }).join('');
+
+    document.querySelectorAll('.ballot-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        if (hasVoted) return;
+        const posId = opt.dataset.positionId;
+        const candidateId = opt.dataset.candidateId;
+        selections[posId] = candidateId;
+
+        document.querySelectorAll(`.ballot-option[data-position-id="${posId}"]`).forEach(el => {
+          const isSelected = el.dataset.candidateId === candidateId;
+          el.classList.toggle('selected', isSelected);
+          el.querySelector('.tick-icon').classList.toggle('hidden', !isSelected);
+        });
+
+        updateProgress();
+      });
+    });
+  }
+
+  function updateProgress(){
+    const count = Object.keys(selections).length;
+    ballotProgress.textContent = `${count} of ${positions.length} positions selected`;
+    submitBallotBtn.disabled = count < positions.length;
+  }
+
+  ballotForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (Object.keys(selections).length < positions.length || hasVoted) return;
+
+    submitBallotBtn.disabled = true;
+    submitBallotBtn.textContent = 'Submitting…';
+
+    try {
+      await apiRequest('/vote', {
+        method: 'POST',
+        body: JSON.stringify({ selections }),
+      });
+      hasVoted = true;
+      lockBallot();
+      await loadReceipt();
+      switchView('receipt');
+    } catch (err) {
+      submitBallotBtn.disabled = false;
+      submitBallotBtn.textContent = 'Submit ballot';
+      alert(err.message);
+    }
+  });
+
+  function lockBallot(){
+    voteLockedNotice.classList.remove('hidden');
+    document.querySelectorAll('.ballot-option').forEach(el => {
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.7';
+    });
+    submitBallotBtn.disabled = true;
+    submitBallotBtn.textContent = 'Ballot submitted';
+
+    document.getElementById('navStatusDot').classList.add('voted');
+    document.getElementById('navStatusText').textContent = 'Voted';
+    document.getElementById('overviewStatus').textContent = 'Voted';
+    document.getElementById('overviewStatus').classList.remove('text-gold');
+    document.getElementById('overviewStatus').classList.add('text-good');
+    document.getElementById('overviewStatusSub').textContent = 'Thank you — your ballot has been recorded. View your receipt anytime.';
+    document.getElementById('overviewCta').textContent = 'View receipt';
+    document.getElementById('overviewCta').removeEventListener('click', () => {});
+    document.getElementById('overviewCta').onclick = () => switchView('receipt');
+  }
+
+  // ---------- Election timeline ----------
+  function renderElectionTimeline(election){
+    if (!election) return;
+    const fmt = (iso) => iso
+      ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : '—';
+    document.getElementById('timelineOpens').textContent = fmt(election.opensAt);
+    document.getElementById('timelineCloses').textContent = fmt(election.closesAt);
+    const certifiedEl = document.getElementById('timelineCertified');
+    certifiedEl.textContent = election.certifiedAt
+      ? new Date(election.certifiedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      : 'Not yet';
+  }
+
+  // ---------- Receipt ----------
+  // The receipt is reconstructed from the backend (what was actually
+  // recorded in the database), not from anything held in browser memory —
+  // that's what makes it still show up after a logout/login or a refresh.
+  async function loadReceipt(){
+    const receiptEmpty = document.getElementById('receiptEmpty');
+    const receiptContent = document.getElementById('receiptContent');
+    const receiptList = document.getElementById('receiptList');
+    const receiptVoteId = document.getElementById('receiptVoteId');
+    const receiptTimestamp = document.getElementById('receiptTimestamp');
+
+    try {
+      const data = await apiRequest('/vote/receipt');
+
+      receiptEmpty.classList.add('hidden');
+      receiptContent.classList.remove('hidden');
+
+      receiptList.innerHTML = data.selections.map(sel => `
+        <li class="flex items-center justify-between gap-3">
+          <span>${sel.position}</span>
+          <span class="text-paperdim text-right">${sel.candidate}</span>
+        </li>
+      `).join('');
+
+      receiptVoteId.textContent = `VOTE_ID: ${data.voteId || '—'}`;
+      receiptTimestamp.textContent = data.votedAt
+        ? new Date(data.votedAt).toLocaleString('en-GB', { hour12: false })
+        : '—';
+    } catch (err) {
+      // Not voted yet (or something went wrong) — leave the "No receipt yet" empty state showing.
+      receiptEmpty.classList.remove('hidden');
+      receiptContent.classList.add('hidden');
+    }
+  }
+
+  // ---------- Load the voter's real profile ----------
+  async function loadProfile(){
+    try {
+      const profile = await apiRequest('/auth/me');
+      const heading = document.getElementById('studentNameHeading');
+      if (heading) heading.textContent = profile.name;
+      document.getElementById('studentMatric').textContent = profile.matric;
+      document.getElementById('studentLevel').textContent = profile.level ? `${profile.level} Level` : '—';
+      document.getElementById('studentEmail').textContent = profile.email;
+    } catch (err) {
+      console.error('Could not load profile:', err.message);
+    }
+  }
+  loadProfile();
+
+  // ---------- Load the ballot from the backend ----------
+  async function init(){
+    try {
+      const data = await apiRequest('/elections/current');
+      positions = data.positions;
+      hasVoted = data.hasVoted;
+
+      renderElectionTimeline(data.election);
+
+      positionFilter.innerHTML = '<option value="all">All positions</option>' +
+        positions.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+
+      renderCandidatesGrid();
+      renderBallot();
+      updateProgress();
+
+      if (hasVoted) {
+        lockBallot();
+        await loadReceipt();
+      } else if (data.election.status !== 'Open') {
+        voteLockedNotice.classList.remove('hidden');
+        voteLockedNotice.querySelector('p.font-serif').textContent = 'Voting is closed';
+        voteLockedNotice.querySelector('p.text-paperdim').textContent = 'This election is no longer accepting ballots.';
+        document.querySelectorAll('.ballot-option').forEach(el => {
+          el.style.pointerEvents = 'none';
+          el.style.opacity = '0.7';
+        });
+        submitBallotBtn.disabled = true;
+        submitBallotBtn.textContent = 'Voting closed';
+      }
+    } catch (err) {
+      ballotPositions.innerHTML = `<p class="text-paperdim text-sm">Could not load the ballot: ${err.message}</p>`;
+    }
+  }
+  init();
+
+  // ---------- Results tab (public endpoint — no auth needed) ----------
+  const resultsGrid = document.getElementById('resultsGrid');
+  const resultsStatusText = document.getElementById('resultsStatusText');
+  const resultsStatusBadge = document.getElementById('resultsStatusBadge');
+  const resultsTotalVotes = document.getElementById('resultsTotalVotes');
+  const winnerBanner = document.getElementById('winnerBanner');
+  const winnerList = document.getElementById('winnerList');
+  let resultsLoadedOnce = false;
+
+  function renderPublicResults(data){
+    if (!data.election) {
+      resultsStatusText.textContent = 'Not started';
+      resultsGrid.innerHTML = `<p class="text-paperdim text-sm">No election has been set up yet.</p>`;
+      return;
+    }
+
+    const isClosed = data.election.status === 'Closed';
+    resultsStatusText.textContent = isClosed ? 'Voting closed · Results final' : 'Live · Voting open';
+    resultsStatusBadge.classList.toggle('border-gold/40', isClosed);
+    resultsStatusBadge.classList.toggle('bg-gold/10', isClosed);
+    resultsStatusBadge.classList.toggle('text-gold', isClosed);
+
+    resultsTotalVotes.textContent = (data.totalVotesCast || 0).toLocaleString();
+
+    resultsGrid.innerHTML = data.positions.map(pos => {
+      const topVotes = pos.candidates[0]?.votes || 0;
+      const rows = pos.candidates.map(c => {
+        const pct = topVotes > 0 ? Math.round((c.votes / topVotes) * 100) : 0;
+        const isWinner = pos.winner && pos.winner.id === c.id;
+        return `
+          <div class="mt-3">
+            <div class="flex items-center justify-between text-[13px]">
+              <span class="text-paper ${isWinner ? 'font-semibold' : ''}">${c.name}${isWinner ? ' <span class="text-gold">🏆</span>' : ''}</span>
+              <span class="font-mono text-paperdim">${c.votes.toLocaleString()}</span>
+            </div>
+            <div class="mt-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div class="h-full ${isWinner ? 'bg-gold' : 'bg-teal'} rounded-full" style="width:${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('') || `<p class="text-paperdim text-sm mt-3">No approved candidates yet.</p>`;
+
+      return `
+        <div class="card-hover panel rounded-sm p-5">
+          <p class="font-mono text-xs text-gold">${pos.position}</p>
+          ${pos.tie ? `<p class="text-paperdim text-[11px] font-mono mt-1 uppercase tracking-wide">Tie — no single winner</p>` : ''}
+          ${rows}
+        </div>
+      `;
+    }).join('') || `<p class="text-paperdim text-sm">No positions to show yet.</p>`;
+
+    if (isClosed) {
+      const winners = data.positions.filter(p => p.winner);
+      if (winners.length > 0) {
+        winnerBanner.classList.remove('hidden');
+        winnerList.innerHTML = winners.map(p => `
+          <div class="border border-gold/30 rounded-sm p-4 panel">
+            <p class="font-mono text-[11px] uppercase tracking-widest text-paperdim">${p.position}</p>
+            <p class="font-serif text-lg text-paper mt-1">${p.winner.name}</p>
+            <p class="font-mono text-[12px] text-gold mt-1">${p.winner.votes.toLocaleString()} votes</p>
+          </div>
+        `).join('');
+      }
+    } else {
+      winnerBanner.classList.add('hidden');
+    }
+  }
+
+  async function loadPublicResults(){
+    try {
+      // Public endpoint — deliberately fetched without an Authorization
+      // header, since results are visible to anyone, logged in or not.
+      const res = await fetch(`${API_BASE}/results/public`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not load results.');
+      renderPublicResults(data);
+    } catch (err) {
+      resultsStatusText.textContent = 'Unavailable';
+      resultsGrid.innerHTML = `<p class="text-paperdim text-sm">Results are unavailable right now: ${err.message}</p>`;
+    }
+  }
+
+  let resultsPollHandle = null;
+  document.querySelector('[data-view="results"]').addEventListener('click', () => {
+    if (!resultsLoadedOnce) {
+      resultsLoadedOnce = true;
+      loadPublicResults();
+    }
+    if (!resultsPollHandle) {
+      resultsPollHandle = setInterval(loadPublicResults, 20000);
+    }
+  });
+</script>
+</body>
+</html>

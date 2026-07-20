@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register — COSSA Vote</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:      '#2B1B12',
+          ink2:     '#3E2A1B',
+          ink3:     '#4A331F',
+          paper:    '#FFFFFF',
+          paperdim: '#D8BFA0',
+          gold:     '#C08A52',
+          teal:     '#8B5A34',
+          ballotred:'#5C3A21',
+        },
+        fontFamily: {
+          serif: ['Fraunces', 'serif'],
+          mono:  ['IBM Plex Mono', 'monospace'],
+          sans:  ['Inter', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+
+<style>
+  :root{
+    --ink:#2B1B12; --ink2:#3E2A1B; --paper:#FFFFFF; --gold:#C08A52; --teal:#8B5A34; --red:#5C3A21;
+  }
+  html{scroll-behavior:smooth;}
+  body{background:var(--ink); font-family:'Inter',sans-serif;}
+
+  .slip{
+    background: var(--paper); color: var(--ink); position: relative;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .slip::before, .slip::after{
+    content:""; position:absolute; left:0; right:0; height:14px;
+    background-image: radial-gradient(circle at 10px 50%, transparent 6px, var(--paper) 6.5px);
+    background-size: 20px 14px; background-repeat: repeat-x;
+  }
+  .slip::before{ top:-7px; }
+  .slip::after{ bottom:-7px; transform: rotate(180deg); }
+
+  .tick-line{ border-top:1px dashed rgba(43,27,18,0.25); }
+
+  .field-input{
+    background: transparent; border: 1px solid rgba(43,27,18,0.25); color: var(--ink);
+  }
+  .field-input:focus{
+    outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(192,138,82,0.2);
+  }
+  .field-input::placeholder{ color: rgba(43,27,18,0.35); }
+
+  .focus-ring:focus-visible{ outline: 2px solid var(--teal); outline-offset: 3px; }
+  ::selection{ background: var(--gold); color: var(--ink); }
+
+  .step{ display:none; }
+  .step.active{ display:block; }
+
+  .step-dot{ width:7px; height:7px; border-radius:50%; background:rgba(43,27,18,0.18); }
+  .step-dot.active{ background: var(--gold); }
+  .step-dot.done{ background: var(--teal); }
+
+  .code-input{
+    width: 2.6rem; height: 3rem; text-align:center; font-size:1.25rem;
+    border: 1px solid rgba(43,27,18,0.25); border-radius: 2px; color: var(--ink);
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .code-input:focus{ outline:none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(192,138,82,0.2); }
+</style>
+</head>
+
+<body class="text-paper antialiased min-h-screen flex flex-col">
+
+<header class="border-b border-white/10 bg-ink/90 backdrop-blur">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 focus-ring rounded">
+      <span class="font-mono text-teal text-lg">&gt;</span>
+      <span class="font-mono font-semibold tracking-tight text-paper">COSSA<span class="text-gold">_</span>VOTE</span>
+    </a>
+    <a href="login.html" class="font-mono text-[13px] uppercase tracking-wide text-paperdim hover:text-paper transition-colors focus-ring rounded flex items-center gap-2">
+      Already registered? Log in
+    </a>
+  </div>
+</header>
+
+<main class="flex-1 flex items-center justify-center px-6 py-16">
+  <div class="w-full max-w-md">
+
+    <div class="text-center mb-6">
+      <p class="font-mono text-[12px] uppercase tracking-widest text-teal">Voter registration</p>
+      <h1 class="font-serif text-3xl md:text-4xl mt-2 text-paper">Create your voting account</h1>
+      <p class="text-paperdim text-sm mt-3 leading-relaxed">
+        Only students on the official Department of Computer Science register can register. We'll check your matric number and name before sending a verification code.
+      </p>
+    </div>
+
+    <div class="flex items-center justify-center gap-2 mb-6">
+      <span class="step-dot active" id="dot-1"></span>
+      <span class="step-dot" id="dot-2"></span>
+      <span class="step-dot" id="dot-3"></span>
+    </div>
+
+    <div class="slip w-full px-7 py-9 rounded-[2px]">
+
+      <!-- STEP 1: identity check -->
+      <div class="step active" id="step-1">
+        <p class="text-[11px] uppercase tracking-[0.2em] text-ink/60 font-mono text-center">Step 1 of 3</p>
+        <p class="text-sm font-semibold uppercase tracking-wide mt-1 font-mono text-center">Confirm your identity</p>
+
+        <div class="tick-line my-5"></div>
+
+        <form id="registerForm" class="space-y-5" novalidate>
+          <div>
+            <label for="regMatric" class="block text-[11px] uppercase tracking-widest font-mono text-ink/70 mb-1.5">Matric Number</label>
+            <input id="regMatric" type="text" required placeholder="e.g. CSC/2021/0142" class="field-input w-full rounded-sm px-3.5 py-2.5 text-sm font-mono" autocomplete="username">
+          </div>
+          <div>
+            <label for="regName" class="block text-[11px] uppercase tracking-widest font-mono text-ink/70 mb-1.5">Full Name (as on register)</label>
+            <input id="regName" type="text" required placeholder="e.g. Ada Obiora" class="field-input w-full rounded-sm px-3.5 py-2.5 text-sm">
+          </div>
+          <div>
+            <label for="regEmail" class="block text-[11px] uppercase tracking-widest font-mono text-ink/70 mb-1.5">Department Email</label>
+            <input id="regEmail" type="email" required placeholder="yourname@cs.university.edu.ng" class="field-input w-full rounded-sm px-3.5 py-2.5 text-sm font-mono" autocomplete="email">
+          </div>
+
+          <p id="step1Error" class="hidden text-[12px] font-mono text-ballotred bg-ballotred/5 border border-ballotred/20 rounded-sm px-3.5 py-2.5"></p>
+
+          <button type="submit" id="step1Btn" class="focus-ring w-full bg-gold text-white font-semibold py-3 rounded-sm hover:bg-gold/90 transition-colors text-sm">
+            Send verification code
+          </button>
+        </form>
+      </div>
+
+      <!-- STEP 2: verify code -->
+      <div class="step" id="step-2">
+        <p class="text-[11px] uppercase tracking-[0.2em] text-ink/60 font-mono text-center">Step 2 of 3</p>
+        <p class="text-sm font-semibold uppercase tracking-wide mt-1 font-mono text-center">Enter your code</p>
+
+        <div class="tick-line my-5"></div>
+
+        <p class="text-sm text-ink/70 text-center mb-5">We sent a 6-digit code to <span id="sentToEmail" class="font-mono text-ink"></span>. It expires in 10 minutes.</p>
+
+        <form id="verifyForm" class="space-y-5" novalidate>
+          <div class="flex justify-center gap-2" id="codeInputs">
+            <input class="code-input" maxlength="1" inputmode="numeric">
+            <input class="code-input" maxlength="1" inputmode="numeric">
+            <input class="code-input" maxlength="1" inputmode="numeric">
+            <input class="code-input" maxlength="1" inputmode="numeric">
+            <input class="code-input" maxlength="1" inputmode="numeric">
+            <input class="code-input" maxlength="1" inputmode="numeric">
+          </div>
+
+          <p id="step2Error" class="hidden text-[12px] font-mono text-ballotred bg-ballotred/5 border border-ballotred/20 rounded-sm px-3.5 py-2.5"></p>
+
+          <button type="submit" id="step2Btn" class="focus-ring w-full bg-gold text-white font-semibold py-3 rounded-sm hover:bg-gold/90 transition-colors text-sm">
+            Verify code
+          </button>
+          <button type="button" id="resendBtn" class="focus-ring w-full text-teal text-sm font-mono hover:text-gold transition-colors">
+            Resend code
+          </button>
+        </form>
+      </div>
+
+      <!-- STEP 3: set password -->
+      <div class="step" id="step-3">
+        <p class="text-[11px] uppercase tracking-[0.2em] text-ink/60 font-mono text-center">Step 3 of 3</p>
+        <p class="text-sm font-semibold uppercase tracking-wide mt-1 font-mono text-center">Set your password</p>
+
+        <div class="tick-line my-5"></div>
+
+        <form id="passwordForm" class="space-y-5" novalidate>
+          <div>
+            <label for="regPassword" class="block text-[11px] uppercase tracking-widest font-mono text-ink/70 mb-1.5">Password</label>
+            <input id="regPassword" type="password" required minlength="8" placeholder="At least 8 characters" class="field-input w-full rounded-sm px-3.5 py-2.5 text-sm font-mono" autocomplete="new-password">
+          </div>
+          <div>
+            <label for="regPasswordConfirm" class="block text-[11px] uppercase tracking-widest font-mono text-ink/70 mb-1.5">Confirm password</label>
+            <input id="regPasswordConfirm" type="password" required minlength="8" placeholder="Re-enter your password" class="field-input w-full rounded-sm px-3.5 py-2.5 text-sm font-mono" autocomplete="new-password">
+          </div>
+
+          <p id="step3Error" class="hidden text-[12px] font-mono text-ballotred bg-ballotred/5 border border-ballotred/20 rounded-sm px-3.5 py-2.5"></p>
+
+          <button type="submit" id="step3Btn" class="focus-ring w-full bg-gold text-white font-semibold py-3 rounded-sm hover:bg-gold/90 transition-colors text-sm">
+            Create account
+          </button>
+        </form>
+      </div>
+
+      <!-- DONE -->
+      <div class="step text-center" id="step-done">
+        <div class="w-12 h-12 rounded-full bg-teal/10 border border-teal/30 flex items-center justify-center mx-auto mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.5 12.75l6 6 9-13.5"/></svg>
+        </div>
+        <h3 class="font-serif text-xl text-ink">Account ready</h3>
+        <p class="text-ink/60 text-sm mt-2 mb-6">You can now log in and cast your vote once the election opens.</p>
+        <a href="login.html" class="focus-ring inline-block w-full bg-gold text-white font-semibold py-3 rounded-sm hover:bg-gold/90 transition-colors text-sm text-center">
+          Go to login
+        </a>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<footer class="border-t border-white/10">
+  <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+      <span class="font-mono text-teal">&gt;</span>
+      <span class="font-mono font-semibold text-paper text-sm">COSSA_VOTE</span>
+    </div>
+    <p class="text-paperdim text-xs font-mono">© 2026 COSSA Electoral Committee</p>
+  </div>
+</footer>
+
+<script>
+  // ---------------------------------------------------------------
+  // Point this at your running backend (see backend/README.md).
+  // ---------------------------------------------------------------
+  const API_BASE = 'https://cossa-vote-website-2.onrender.com/api';
+
+  let currentMatric = '';
+
+  function goToStep(step){
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.getElementById(step).classList.add('active');
+    ['dot-1','dot-2','dot-3'].forEach((id, i) => {
+      const dot = document.getElementById(id);
+      if (!dot) return;
+      dot.classList.remove('active','done');
+      if (step === `step-${i+1}`) dot.classList.add('active');
+      else if (['step-2','step-3','step-done'].indexOf(step) > i) dot.classList.add('done');
+    });
+  }
+
+  function showError(id, message){
+    const el = document.getElementById(id);
+    el.textContent = message;
+    el.classList.remove('hidden');
+  }
+  function hideError(id){ document.getElementById(id).classList.add('hidden'); }
+
+  // ---- Step 1: register ----
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError('step1Error');
+    const matric = document.getElementById('regMatric').value.trim();
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+
+    const btn = document.getElementById('step1Btn');
+    btn.disabled = true; btn.textContent = 'Checking…';
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matric, name, email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Registration failed.');
+
+      currentMatric = matric;
+      document.getElementById('sentToEmail').textContent = email;
+      goToStep('step-2');
+      document.querySelector('#codeInputs input').focus();
+    } catch (err) {
+      showError('step1Error', err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Send verification code';
+    }
+  });
+
+  // ---- Step 2: code input auto-advance ----
+  const codeInputs = Array.from(document.querySelectorAll('#codeInputs input'));
+  codeInputs.forEach((input, i) => {
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/\D/g, '');
+      if (input.value && i < codeInputs.length - 1) codeInputs[i+1].focus();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && i > 0) codeInputs[i-1].focus();
+    });
+  });
+
+  document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError('step2Error');
+    const code = codeInputs.map(i => i.value).join('');
+    if (code.length !== 6) { showError('step2Error', 'Enter all 6 digits.'); return; }
+
+    const btn = document.getElementById('step2Btn');
+    btn.disabled = true; btn.textContent = 'Verifying…';
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matric: currentMatric, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verification failed.');
+      goToStep('step-3');
+    } catch (err) {
+      showError('step2Error', err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Verify code';
+    }
+  });
+
+  document.getElementById('resendBtn').addEventListener('click', async () => {
+    hideError('step2Error');
+    try {
+      const res = await fetch(`${API_BASE}/auth/resend-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matric: currentMatric }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not resend code.');
+      showError('step2Error', 'A new code has been sent.');
+      document.getElementById('step2Error').classList.remove('text-ballotred','bg-ballotred/5','border-ballotred/20');
+      document.getElementById('step2Error').classList.add('text-teal');
+    } catch (err) {
+      showError('step2Error', err.message);
+    }
+  });
+
+  // ---- Step 3: set password ----
+  document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError('step3Error');
+    const password = document.getElementById('regPassword').value;
+    const confirm = document.getElementById('regPasswordConfirm').value;
+
+    if (password.length < 8) { showError('step3Error', 'Password must be at least 8 characters.'); return; }
+    if (password !== confirm) { showError('step3Error', 'Passwords do not match.'); return; }
+
+    const btn = document.getElementById('step3Btn');
+    btn.disabled = true; btn.textContent = 'Creating account…';
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/set-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matric: currentMatric, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not set password.');
+      goToStep('step-done');
+    } catch (err) {
+      showError('step3Error', err.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create account';
+    }
+  });
+</script>
+
+</body>
+</html>

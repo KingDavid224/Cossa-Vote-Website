@@ -1,0 +1,566 @@
+<!-- A Voting System Built By David OLuwaniyi -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COSSA Vote — Department of Computer Science Elections</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:      '#2B1B12',
+          ink2:     '#3E2A1B',
+          ink3:     '#4A331F',
+          paper:    '#FFFFFF',
+          paperdim: '#D8BFA0',
+          gold:     '#C08A52',
+          teal:     '#8B5A34',
+          ballotred:'#5C3A21',
+        },
+        fontFamily: {
+          serif: ['Fraunces', 'serif'],
+          mono:  ['IBM Plex Mono', 'monospace'],
+          sans:  ['Inter', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+
+<style>
+  :root{
+    --ink:#2B1B12; --ink2:#3E2A1B; --paper:#FFFFFF; --gold:#C08A52; --teal:#8B5A34; --red:#5C3A21;
+  }
+  html{scroll-behavior:smooth;}
+  body{background:var(--ink); font-family:'Inter',sans-serif;}
+
+  .status-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--red);
+    box-shadow:0 0 0 0 rgba(92,58,33,0.6);
+    animation:pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(92,58,33,0.55);}
+    70%{box-shadow:0 0 0 7px rgba(92,58,33,0);}
+    100%{box-shadow:0 0 0 0 rgba(92,58,33,0);}
+  }
+
+  /* Ballot receipt signature element */
+  .receipt{
+    background: var(--paper);
+    color: var(--ink);
+    position: relative;
+    font-family:'IBM Plex Mono', monospace;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .receipt::before, .receipt::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; height:14px;
+    background-image: radial-gradient(circle at 10px 50%, transparent 6px, var(--paper) 6.5px);
+    background-size: 20px 14px;
+    background-repeat: repeat-x;
+  }
+  .receipt::before{ top:-7px; }
+  .receipt::after{ bottom:-7px; transform: rotate(180deg); }
+
+  .barcode{
+    height: 34px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--ink) 0px, var(--ink) 2px,
+      transparent 2px, transparent 5px,
+      var(--ink) 5px, var(--ink) 6px,
+      transparent 6px, transparent 10px,
+      var(--ink) 10px, var(--ink) 13px,
+      transparent 13px, transparent 15px
+    );
+    opacity:0.85;
+  }
+
+  .tick-line{ border-top:1px dashed rgba(43,27,18,0.25); }
+
+  .card-hover{ transition: transform .25s ease, border-color .25s ease; }
+  .card-hover:hover{ transform: translateY(-4px); }
+
+  .receipt-float{
+    animation: floaty 6s ease-in-out infinite;
+  }
+  @keyframes floaty{
+    0%,100%{ transform: translateY(0) rotate(-1.2deg); }
+    50%{ transform: translateY(-10px) rotate(-0.4deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .receipt-float{ animation:none; }
+    .status-dot{ animation:none; }
+  }
+
+  .focus-ring:focus-visible{
+    outline: 2px solid var(--teal);
+    outline-offset: 3px;
+  }
+
+  ::selection{ background: var(--gold); color: var(--ink); }
+</style>
+</head>
+
+<body class="text-paper antialiased">
+
+<!-- ===================== NAV ===================== -->
+<header class="sticky top-0 z-50 border-b border-white/10 backdrop-blur bg-ink/90">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 focus-ring rounded">
+      <span class="font-mono text-teal text-lg">&gt;</span>
+      <span class="font-mono font-semibold tracking-tight text-paper">COSSA<span class="text-gold">_</span>VOTE</span>
+    </a>
+
+    <nav class="hidden md:flex items-center gap-8 font-mono text-[13px] uppercase tracking-wide text-paperdim">
+      <a href="#how" class="hover:text-paper transition-colors focus-ring rounded">How it works</a>
+      <a href="#positions" class="hover:text-paper transition-colors focus-ring rounded">Positions</a>
+      <a href="#results" class="hover:text-paper transition-colors focus-ring rounded">Live results</a>
+      <a href="#security" class="hover:text-paper transition-colors focus-ring rounded">Security</a>
+    </nav>
+
+    <div class="flex items-center gap-3">
+      <a href="/login.html" class="hidden sm:inline-block font-mono text-[13px] uppercase tracking-wide px-4 py-2 rounded-sm bg-gold text-ink font-semibold hover:bg-gold/90 transition-colors focus-ring">
+        Login to vote
+      </a>
+      <button id="menuBtn" aria-label="Open menu" aria-expanded="false" class="md:hidden p-2 text-paper focus-ring rounded">
+        <svg id="menuIconOpen" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <svg id="menuIconClose" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- mobile menu -->
+  <div id="mobileMenu" class="hidden md:hidden border-t border-white/10 bg-ink">
+    <div class="px-6 py-4 flex flex-col gap-4 font-mono text-sm uppercase tracking-wide text-paperdim">
+      <a href="#how" class="hover:text-paper">How it works</a>
+      <a href="#positions" class="hover:text-paper">Positions</a>
+      <a href="#results" class="hover:text-paper">Live results</a>
+      <a href="#security" class="hover:text-paper">Security</a>
+      <a href="/login.html" class="mt-2 inline-block text-center px-4 py-2 rounded-sm bg-gold text-ink font-semibold">Login to vote</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== HERO ===================== -->
+<section class="relative overflow-hidden">
+  <div class="max-w-6xl mx-auto px-6 pt-16 pb-24 md:pt-24 md:pb-32 grid md:grid-cols-2 gap-14 items-center">
+
+    <!-- Left: copy -->
+    <div>
+      <div class="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-teal border border-teal/30 bg-teal/10 rounded-full px-3 py-1.5 mb-6">
+        <span class="status-dot"></span>
+        Election_2026 :: status open
+      </div>
+
+      <h1 class="font-serif text-4xl sm:text-5xl md:text-6xl leading-[1.05] text-paper">
+        Your department.<br>
+        Your vote.<br>
+        <span class="italic text-gold">Your say.</span>
+      </h1>
+
+      <p class="mt-6 text-paperdim text-base md:text-lg max-w-md leading-relaxed">
+        The official portal for the Computer Science Students' Association elections. Verify your matric number, cast one secure vote per position, and watch results certify in real time.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center gap-4">
+        <a href="/login.html" class="focus-ring inline-flex items-center gap-2 px-6 py-3 rounded-sm bg-gold text-ink font-semibold hover:bg-gold/90 transition-colors">
+          Login to vote
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
+        <a href="#how" class="focus-ring inline-flex items-center gap-2 px-6 py-3 rounded-sm border border-white/20 text-paper hover:border-white/40 transition-colors font-mono text-sm uppercase tracking-wide">
+          See how it works
+        </a>
+      </div>
+
+      <!-- live stats strip -->
+      <dl class="mt-12 grid grid-cols-3 gap-6 max-w-md font-mono">
+        <div>
+          <dt class="text-[11px] uppercase tracking-widest text-paperdim">Eligible voters</dt>
+          <dd class="text-2xl text-paper mt-1" data-count="1240">0</dd>
+        </div>
+        <div>
+          <dt class="text-[11px] uppercase tracking-widest text-paperdim">Positions</dt>
+          <dd class="text-2xl text-paper mt-1" data-count="6">0</dd>
+        </div>
+        <div>
+          <dt class="text-[11px] uppercase tracking-widest text-paperdim">Closes in</dt>
+          <dd id="countdown" class="text-2xl text-gold mt-1">—</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Right: ballot receipt signature element -->
+    <div class="flex justify-center md:justify-end">
+      <div class="receipt-float receipt w-full max-w-sm px-6 py-8 rounded-[2px]">
+        <div class="text-center">
+          <p class="text-[11px] uppercase tracking-[0.2em] text-ink/60">Department of Computer Science</p>
+          <p class="text-sm font-semibold uppercase tracking-wide mt-1">Official Ballot — General Election</p>
+        </div>
+
+        <div class="tick-line my-4"></div>
+
+        <ul class="space-y-3 text-[13px]">
+          <li class="flex items-center justify-between">
+            <span>President</span>
+            <span class="border border-ink/40 w-4 h-4 inline-flex items-center justify-center text-[10px]">✓</span>
+          </li>
+          <li class="flex items-center justify-between">
+            <span>Vice President</span>
+            <span class="border border-ink/40 w-4 h-4 inline-flex items-center justify-center text-[10px]">✓</span>
+          </li>
+          <li class="flex items-center justify-between">
+            <span>General Secretary</span>
+            <span class="border border-ink/40 w-4 h-4 inline-flex items-center justify-center text-[10px]">✓</span>
+          </li>
+          <li class="flex items-center justify-between text-ink/40">
+            <span>Financial Secretary</span>
+            <span class="border border-ink/30 w-4 h-4 inline-flex items-center justify-center text-[10px]">…</span>
+          </li>
+        </ul>
+
+        <div class="tick-line my-4"></div>
+
+        <div class="flex items-center justify-between text-[11px] text-ink/60">
+          <span>VOTE_ID: 8F2C-91AA</span>
+          <span id="receiptTime">--:--:--</span>
+        </div>
+
+        <div class="barcode mt-4"></div>
+        <p class="text-center text-[10px] uppercase tracking-[0.3em] text-ink/50 mt-3">Anonymous · Verified · Counted</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================== HOW IT WORKS ===================== -->
+<section id="how" class="border-t border-white/10 bg-ink2">
+  <div class="max-w-6xl mx-auto px-6 py-20">
+    <div class="max-w-xl">
+      <p class="font-mono text-[12px] uppercase tracking-widest text-teal">How it works</p>
+      <h2 class="font-serif text-3xl md:text-4xl mt-3 text-paper">Four steps, from login to certified vote.</h2>
+    </div>
+
+    <div class="mt-14 grid md:grid-cols-4 gap-8">
+      <div class="border-t-2 border-gold pt-5">
+        <span class="font-mono text-gold text-sm">01</span>
+        <h3 class="font-serif text-xl mt-2 text-paper">Verify</h3>
+        <p class="text-paperdim text-sm mt-2 leading-relaxed">Log in with your matric number and department email. We confirm you're a registered CS student before anything else.</p>
+      </div>
+      <div class="border-t-2 border-gold/60 pt-5">
+        <span class="font-mono text-gold text-sm">02</span>
+        <h3 class="font-serif text-xl mt-2 text-paper">Review candidates</h3>
+        <p class="text-paperdim text-sm mt-2 leading-relaxed">Read manifestos and profiles for every position before you commit to a choice.</p>
+      </div>
+      <div class="border-t-2 border-gold/40 pt-5">
+        <span class="font-mono text-gold text-sm">03</span>
+        <h3 class="font-serif text-xl mt-2 text-paper">Cast your vote</h3>
+        <p class="text-paperdim text-sm mt-2 leading-relaxed">Select one candidate per position. One vote per position, per student — enforced automatically.</p>
+      </div>
+      <div class="border-t-2 border-gold/20 pt-5">
+        <span class="font-mono text-gold text-sm">04</span>
+        <h3 class="font-serif text-xl mt-2 text-paper">Get your receipt</h3>
+        <p class="text-paperdim text-sm mt-2 leading-relaxed">A unique vote ID confirms your ballot was counted — with no way to trace it back to your identity.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== POSITIONS ===================== -->
+<section id="positions" class="border-t border-white/10">
+  <div class="max-w-6xl mx-auto px-6 py-20">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div class="max-w-xl">
+        <p class="font-mono text-[12px] uppercase tracking-widest text-teal">On the ballot</p>
+        <h2 class="font-serif text-3xl md:text-4xl mt-3 text-paper">Six seats, one association.</h2>
+      </div>
+      <p class="text-paperdim text-sm max-w-xs">Every registered CS student can vote once for each of the following executive positions.</p>
+    </div>
+
+    <div class="mt-12 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <div class="card-hover border border-white/10 rounded-sm p-6 bg-ink2">
+        <p class="font-mono text-xs text-gold">SEAT_01</p>
+        <h3 class="font-serif text-lg mt-2 text-paper">President</h3>
+        <p class="text-paperdim text-sm mt-1">Represents COSSA to faculty and the wider student union.</p>
+      </div>
+      <div class="card-hover border border-white/10 rounded-sm p-6 bg-ink2">
+        <p class="font-mono text-xs text-gold">SEAT_02</p>
+        <h3 class="font-serif text-lg mt-2 text-paper">Vice President</h3>
+        <p class="text-paperdim text-sm mt-1">Deputises for the President and leads internal committees.</p>
+      </div>
+      <div class="card-hover border border-white/10 rounded-sm p-6 bg-ink2">
+        <p class="font-mono text-xs text-gold">SEAT_03</p>
+        <h3 class="font-serif text-lg mt-2 text-paper">General Secretary</h3>
+        <p class="text-paperdim text-sm mt-1">Keeps records, minutes, and official correspondence.</p>
+      </div>
+      <div class="card-hover border border-white/10 rounded-sm p-6 bg-ink2">
+        <p class="font-mono text-xs text-gold">SEAT_04</p>
+        <h3 class="font-serif text-lg mt-2 text-paper">Financial Secretary</h3>
+        <p class="text-paperdim text-sm mt-1">Manages dues, budgets, and financial reporting.</p>
+      </div>
+      <div class="card-hover border border-white/10 rounded-sm p-6 bg-ink2">
+        <p class="font-mono text-xs text-gold">SEAT_05</p>
+        <h3 class="font-serif text-lg mt-2 text-paper">Public Relations Officer</h3>
+        <p class="text-paperdim text-sm mt-1">Handles announcements, publicity, and departmental events.</p>
+      </div>
+      <div class="card-hover border border-white/10 rounded-sm p-6 bg-ink2">
+        <p class="font-mono text-xs text-gold">SEAT_06</p>
+        <h3 class="font-serif text-lg mt-2 text-paper">Welfare Director</h3>
+        <p class="text-paperdim text-sm mt-1">Advocates for student welfare, hostel and exam-period concerns.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== LIVE RESULTS ===================== -->
+<section id="results" class="border-t border-white/10 bg-ink2">
+  <div class="max-w-6xl mx-auto px-6 py-20">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div class="max-w-xl">
+        <p class="font-mono text-[12px] uppercase tracking-widest text-teal"></p>
+        <h2 class="font-serif text-3xl md:text-4xl mt-3 text-paper">Live results.</h2>
+      </div>
+      <div id="resultsStatusBadge" class="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-teal border border-teal/30 bg-teal/10 rounded-full px-3 py-1.5">
+        <span class="status-dot"></span>
+        <span id="resultsStatusText">Loading…</span>
+      </div>
+    </div>
+
+    <!-- Winner announcement banner (only shown once the election is closed) -->
+    <div id="winnerBanner" class="hidden mt-10 border border-gold/40 bg-gold/10 rounded-sm p-6">
+      <p class="font-mono text-[11px] uppercase tracking-widest text-gold">Election closed</p>
+      <h3 class="font-serif text-2xl mt-2 text-paper">Winners have been announced 🏆</h3>
+      <div id="winnerList" class="mt-5 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <!-- injected by JS -->
+      </div>
+    </div>
+
+    <div id="resultsGrid" class="mt-10 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <p class="text-paperdim text-sm">Loading live results…</p>
+    </div>
+
+    <p class="text-paperdim text-xs font-mono mt-8">Total votes cast so far: <span id="resultsTotalVotes">—</span></p>
+  </div>
+</section>
+
+<!-- ===================== SECURITY ===================== -->
+<section id="security" class="border-t border-white/10 bg-ink2">
+  <div class="max-w-6xl mx-auto px-6 py-20">
+    <div class="max-w-xl">
+      <p class="font-mono text-[12px] uppercase tracking-widest text-teal">Trust &amp; integrity</p>
+      <h2 class="font-serif text-3xl md:text-4xl mt-3 text-paper">Built so every vote counts, once.</h2>
+    </div>
+
+    <div class="mt-12 grid sm:grid-cols-2 gap-4">
+      <div class="border border-white/10 rounded-sm p-6">
+        <div class="w-9 h-9 rounded-full bg-teal/10 border border-teal/30 flex items-center justify-center text-teal font-mono text-sm">01</div>
+        <h3 class="font-serif text-lg mt-4 text-paper">One student, one vote</h3>
+        <p class="text-paperdim text-sm mt-2 leading-relaxed">Your matric number and department email are checked against the departmental register before you can vote — and locked once you've cast your ballot.</p>
+      </div>
+      <div class="border border-white/10 rounded-sm p-6">
+        <div class="w-9 h-9 rounded-full bg-teal/10 border border-teal/30 flex items-center justify-center text-teal font-mono text-sm">02</div>
+        <h3 class="font-serif text-lg mt-4 text-paper">Encrypted in transit</h3>
+        <p class="text-paperdim text-sm mt-2 leading-relaxed">Your selections are encrypted before they leave your browser, so nothing readable ever crosses the network.</p>
+      </div>
+      <div class="border border-white/10 rounded-sm p-6">
+        <div class="w-9 h-9 rounded-full bg-teal/10 border border-teal/30 flex items-center justify-center text-teal font-mono text-sm">03</div>
+        <h3 class="font-serif text-lg mt-4 text-paper">Anonymous by design</h3>
+        <p class="text-paperdim text-sm mt-2 leading-relaxed">Once cast, your vote ID is separated from your identity. Not even administrators can match a ballot back to a voter.</p>
+      </div>
+      <div class="border border-white/10 rounded-sm p-6">
+        <div class="w-9 h-9 rounded-full bg-teal/10 border border-teal/30 flex items-center justify-center text-teal font-mono text-sm">04</div>
+        <h3 class="font-serif text-lg mt-4 text-paper">Independent audit trail</h3>
+        <p class="text-paperdim text-sm mt-2 leading-relaxed">Every vote is logged immutably, so results can be verified after the election closes without exposing any single voter's choice.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CTA ===================== -->
+<section class="border-t border-white/10">
+  <div class="max-w-6xl mx-auto px-6 py-20 text-center">
+    <h2 class="font-serif text-3xl md:text-4xl text-paper">Voting closes soon. Don't sit this one out.</h2>
+    <p class="text-paperdim mt-4 max-w-md mx-auto">It takes less than three minutes to verify, review candidates, and cast your ballot.</p>
+    <a href="/login.html" class="focus-ring inline-flex items-center gap-2 mt-8 px-7 py-3.5 rounded-sm bg-gold text-ink font-semibold hover:bg-gold/90 transition-colors">
+      Login to vote
+    </a>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="border-t border-white/10">
+  <div class="max-w-6xl mx-auto px-6 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-teal">&gt;</span>
+        <span class="font-mono font-semibold text-paper">COSSA_VOTE</span>
+      </div>
+      <p class="text-paperdim text-sm mt-2 max-w-xs">Built for the Department of Computer Science Students' Association.</p>
+    </div>
+    <div class="font-mono text-[12px] uppercase tracking-wide text-paperdim flex flex-col gap-2">
+      <a href="/login.html" class="hover:text-paper">Student login</a>
+      <a href="/adminlogin.html" class="hover:text-paper">Admin login</a>
+    </div>
+    <p class="text-paperdim text-xs font-mono">© 2026 COSSA Electoral Committee</p>
+  </div>
+</footer>
+<script >
+  // Homepage Section
+// Mobile menu toggle
+  const menuBtn = document.getElementById('menuBtn');
+  const mobileMenu = document.getElementById('mobileMenu');
+  const iconOpen = document.getElementById('menuIconOpen');
+  const iconClose = document.getElementById('menuIconClose');
+
+  menuBtn.addEventListener('click', () => {
+    const isOpen = !mobileMenu.classList.contains('hidden');
+    mobileMenu.classList.toggle('hidden');
+    iconOpen.classList.toggle('hidden');
+    iconClose.classList.toggle('hidden');
+    menuBtn.setAttribute('aria-expanded', String(!isOpen));
+  });
+
+  // Live clock on the receipt card
+  const receiptTime = document.getElementById('receiptTime');
+  function tickClock(){
+    const now = new Date();
+    receiptTime.textContent = now.toLocaleTimeString('en-GB', { hour12: false });
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  // Countdown to election close (3 days from page load, for demo purposes)
+  const electionEnd = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+  const countdownEl = document.getElementById('countdown');
+  function tickCountdown(){
+    const diff = electionEnd - new Date();
+    if (diff <= 0) { countdownEl.textContent = 'Closed'; return; }
+    const d = Math.floor(diff / (1000*60*60*24));
+    const h = Math.floor((diff / (1000*60*60)) % 24);
+    countdownEl.textContent = `${d}d ${h}h`;
+  }
+  tickCountdown();
+  setInterval(tickCountdown, 60000);
+
+  // Animated count-up stats when they scroll into view
+  const counters = document.querySelectorAll('[data-count]');
+  const animateCount = (el) => {
+    const target = parseInt(el.getAttribute('data-count'), 10);
+    const duration = 1200;
+    const start = performance.now();
+    function frame(now){
+      const progress = Math.min((now - start) / duration, 1);
+      el.textContent = Math.floor(progress * target).toLocaleString();
+      if (progress < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  };
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting){
+        animateCount(entry.target);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  counters.forEach(el => observer.observe(el));
+
+  // ===================== LIVE RESULTS (public, no login) =====================
+  // Point this at your running backend (see backend/README.md).
+  const API_BASE = 'https://cossa-vote-website-2.onrender.com/api';
+
+  const resultsGrid = document.getElementById('resultsGrid');
+  const resultsStatusText = document.getElementById('resultsStatusText');
+  const resultsStatusBadge = document.getElementById('resultsStatusBadge');
+  const resultsTotalVotes = document.getElementById('resultsTotalVotes');
+  const winnerBanner = document.getElementById('winnerBanner');
+  const winnerList = document.getElementById('winnerList');
+
+  function renderPublicResults(data){
+    if (!data.election) {
+      resultsStatusText.textContent = 'Not started';
+      resultsGrid.innerHTML = `<p class="text-paperdim text-sm">No election has been set up yet.</p>`;
+      return;
+    }
+
+    const isClosed = data.election.status === 'Closed';
+    resultsStatusText.textContent = isClosed ? 'Voting closed · Results final' : 'Live · Voting open';
+    resultsStatusBadge.classList.toggle('border-gold/40', isClosed);
+    resultsStatusBadge.classList.toggle('bg-gold/10', isClosed);
+    resultsStatusBadge.classList.toggle('text-gold', isClosed);
+
+    resultsTotalVotes.textContent = (data.totalVotesCast || 0).toLocaleString();
+
+    resultsGrid.innerHTML = data.positions.map(pos => {
+      const topVotes = pos.candidates[0]?.votes || 0;
+      const rows = pos.candidates.map(c => {
+        const pct = topVotes > 0 ? Math.round((c.votes / topVotes) * 100) : 0;
+        const isWinner = pos.winner && pos.winner.id === c.id;
+        return `
+          <div class="mt-3">
+            <div class="flex items-center justify-between text-[13px]">
+              <span class="text-paper ${isWinner ? 'font-semibold' : ''}">${c.name}${isWinner ? ' <span class="text-gold">🏆</span>' : ''}</span>
+              <span class="font-mono text-paperdim">${c.votes.toLocaleString()}</span>
+            </div>
+            <div class="mt-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div class="h-full ${isWinner ? 'bg-gold' : 'bg-teal'} rounded-full" style="width:${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('') || `<p class="text-paperdim text-sm mt-3">No approved candidates yet.</p>`;
+
+      return `
+        <div class="card-hover border border-white/10 rounded-sm p-6 bg-ink">
+          <p class="font-mono text-xs text-gold">${pos.position}</p>
+          ${pos.tie ? `<p class="text-paperdim text-[11px] font-mono mt-1 uppercase tracking-wide">Tie — no single winner</p>` : ''}
+          ${rows}
+        </div>
+      `;
+    }).join('') || `<p class="text-paperdim text-sm">No positions to show yet.</p>`;
+
+    if (isClosed) {
+      const winners = data.positions.filter(p => p.winner);
+      if (winners.length > 0) {
+        winnerBanner.classList.remove('hidden');
+        winnerList.innerHTML = winners.map(p => `
+          <div class="border border-gold/30 rounded-sm p-4 bg-ink">
+            <p class="font-mono text-[11px] uppercase tracking-widest text-paperdim">${p.position}</p>
+            <p class="font-serif text-lg text-paper mt-1">${p.winner.name}</p>
+            <p class="font-mono text-[12px] text-gold mt-1">${p.winner.votes.toLocaleString()} votes</p>
+          </div>
+        `).join('');
+      }
+    } else {
+      winnerBanner.classList.add('hidden');
+    }
+  }
+
+  async function loadPublicResults(){
+    try {
+      const res = await fetch(`${API_BASE}/results/public`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not load results.');
+      renderPublicResults(data);
+    } catch (err) {
+      resultsStatusText.textContent = 'Unavailable';
+      resultsGrid.innerHTML = `<p class="text-paperdim text-sm">Results are unavailable right now: ${err.message}</p>`;
+    }
+  }
+  loadPublicResults();
+  setInterval(loadPublicResults, 20000); // refresh so results stay live
+
+</script>
+</body>
+</html>

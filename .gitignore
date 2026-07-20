@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Environment variables — contains real secrets (Mongo URI, JWT secret,
+# SMTP password, admin seed password). Never commit this.
+backend/.env
+.env
+
+# OS / editor cruft
+.DS_Store
+*.log

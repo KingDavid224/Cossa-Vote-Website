@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — COSSA Vote</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:      '#2B1B12',
+          ink2:     '#3E2A1B',
+          ink3:     '#4A331F',
+          paper:    '#FFFFFF',
+          paperdim: '#D8BFA0',
+          gold:     '#C08A52',
+          teal:     '#8B5A34',
+          ballotred:'#5C3A21',
+        },
+        fontFamily: {
+          serif: ['Fraunces', 'serif'],
+          mono:  ['IBM Plex Mono', 'monospace'],
+          sans:  ['Inter', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+
+<style>
+  :root{
+    --ink:#2B1B12; --ink2:#3E2A1B; --paper:#FFFFFF; --gold:#C08A52; --teal:#8B5A34; --red:#5C3A21;
+  }
+  html{scroll-behavior:smooth;}
+  body{background:var(--ink); font-family:'Inter',sans-serif;}
+
+  .status-dot{
+    width:8px; height:8px; border-radius:50%; background:var(--red);
+    box-shadow:0 0 0 0 rgba(92,58,33,0.6);
+    animation:pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(92,58,33,0.55);}
+    70%{box-shadow:0 0 0 7px rgba(92,58,33,0);}
+    100%{box-shadow:0 0 0 0 rgba(92,58,33,0);}
+  }
+
+  /* Verification slip — same perforated receipt language as the homepage */
+  .slip{
+    background: var(--paper);
+    color: var(--ink);
+    position: relative;
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .slip::before, .slip::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; height:14px;
+    background-image: radial-gradient(circle at 10px 50%, transparent 6px, var(--paper) 6.5px);
+    background-size: 20px 14px;
+    background-repeat: repeat-x;
+  }
+  .slip::before{ top:-7px; }
+  .slip::after{ bottom:-7px; transform: rotate(180deg); }
+
+  .barcode{
+    height: 28px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--ink) 0px, var(--ink) 2px,
+      transparent 2px, transparent 5px,
+      var(--ink) 5px, var(--ink) 6px,
+      transparent 6px, transparent 10px,
+      var(--ink) 10px, var(--ink) 13px,
+      transparent 13px, transparent 15px
+    );
+    opacity:0.85;
+  }
+
+  .tick-line{ border-top:1px dashed rgba(43,27,18,0.25); }
+
+  .field-input{
+    background: transparent;
+    border: 1px solid rgba(43,27,18,0.25);
+    color: var(--ink);
+  }
+  .field-input:focus{
+    outline: none;
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(192,138,82,0.2);
+  }
+  .field-input::placeholder{ color: rgba(43,27,18,0.35); }
+
+  .focus-ring:focus-visible{
+    outline: 2px solid var(--teal);
+    outline-offset: 3px;
+  }
+
+  ::selection{ background: var(--gold); color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce){
+    .status-dot{ animation:none; }
+  }
+</style>
+</head>
+
+<body class="text-paper antialiased min-h-screen flex flex-col">
+
+<!-- ===================== NAV ===================== -->
+<header class="border-b border-white/10 bg-ink/90 backdrop-blur">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 focus-ring rounded">
+      <span class="font-mono text-teal text-lg">&gt;</span>
+      <span class="font-mono font-semibold tracking-tight text-paper">COSSA<span class="text-gold">_</span>VOTE</span>
+    </a>
+
+    <a href="/" class="font-mono text-[13px] uppercase tracking-wide text-paperdim hover:text-paper transition-colors focus-ring rounded flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+      Back to home
+    </a>
+  </div>
+</header>
+
+<!-- ===================== MAIN ===================== -->
+<main class="flex-1">
+  <div class="max-w-6xl mx-auto px-6 py-14 md:py-20 grid md:grid-cols-2 gap-14 items-center">
+
+    <!-- Left: context copy -->
+    <div class="order-2 md:order-1">
+      <div class="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-teal border border-teal/30 bg-teal/10 rounded-full px-3 py-1.5 mb-6">
+        <span class="status-dot"></span>
+        Election_2026 :: status open
+      </div>
+
+      <h1 class="font-serif text-4xl sm:text-5xl leading-[1.05] text-paper">
+        Verify your details<br>to cast your vote.
+      </h1>
+
+      <p class="mt-6 text-paperdim text-base md:text-lg max-w-md leading-relaxed">
+        Login is restricted to registered students of the Department of Computer Science. Your matric number and department email are checked against the official register.
+      </p>
+
+      <ul class="mt-8 space-y-4 max-w-md">
+        <li class="flex items-start gap-3">
+          <span class="mt-1 w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0"></span>
+          <span class="text-paperdim text-sm">One login per student — your session locks once your ballot is cast.</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="mt-1 w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0"></span>
+          <span class="text-paperdim text-sm">Your credentials verify eligibility only — they're never linked to your ballot choices.</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <span class="mt-1 w-1.5 h-1.5 rounded-full bg-gold flex-shrink-0"></span>
+          <span class="text-paperdim text-sm">Trouble logging in? Contact the Electoral Committee via your class rep.</span>
+        </li>
+      </ul>
+
+      <p class="font-mono text-[12px] uppercase tracking-wide text-paperdim">
+        New here? <a href="register.html" class="text-teal hover:text-gold transition-colors underline underline-offset-4">Create your voting account</a>
+      </p>
+      <p class="mt-3 font-mono text-[12px] uppercase tracking-wide text-paperdim">
+        Election official? <a href="/adminlogin.html" class="text-teal hover:text-gold transition-colors underline underline-offset-4">Login to the admin dashboard</a>
+      </p>
+    </div>
+
+    <!-- Right: verification slip / login form -->
+    <div class="order-1 md:order-2 flex justify-center md:justify-end">
+      <div class="slip w-full max-w-sm px-7 py-9 rounded-[2px]">
+        <div class="text-center">
+          <p class="text-[11px] uppercase tracking-[0.2em] text-ink/60 font-mono">Department of Computer Science</p>
+          <p class="text-sm font-semibold uppercase tracking-wide mt-1 font-mono">Voter Verification Slip</p>
+        </div>
+
+        <div class="tick-line my-5"></div>
+
+        <form id="loginForm" class="space-y-5" novalidate>
+
+          <div>
+            <label for="matric" class="block text-[11px] uppercase tracking-widest font-mono text-ink/70 mb-1.5">Matric Number</label>
+            <input
+              id="matric" name="matric" type="text" required
+              placeholder="e.g. 2021000123"
+              class="field-input w-full rounded-sm px-3.5 py-2.5 text-sm font-mono"
+              autocomplete="username"
+            >
+            <p id="matricError" class="hidden text-[11px] text-ballotred mt-1.5 font-mono">Enter your matric number to continue.</p>
+          </div>
+
+          <div>
+            <label for="email" class="block text-[11px] uppercase tracking-widest font-mono text-ink/70 mb-1.5">Department Email</label>
+            <input
+              id="email" name="email" type="email" required
+              placeholder="yourname@student.lautech.edu.ng"
+              class="field-input w-full rounded-sm px-3.5 py-2.5 text-sm font-mono"
+              autocomplete="email"
+            >
+            <p id="emailError" class="hidden text-[11px] text-ballotred mt-1.5 font-mono">Enter a valid department email.</p>
+          </div>
+
+          <div>
+            <label for="password" class="block text-[11px] uppercase tracking-widest font-mono text-ink/70 mb-1.5">Password</label>
+            <div class="relative">
+              <input
+                id="password" name="password" type="password" required
+                placeholder="••••••••"
+                class="field-input w-full rounded-sm px-3.5 py-2.5 pr-11 text-sm font-mono"
+                autocomplete="current-password"
+              >
+              <button type="button" id="togglePassword" aria-label="Show password" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink/50 hover:text-ink transition-colors focus-ring rounded">
+                <svg id="eyeOpen" xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                <svg id="eyeClosed" xmlns="http://www.w3.org/2000/svg" class="h-4.5 w-4.5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.98 8.223A10.477 10.477 0 001.934 12c1.292 4.338 5.31 7.5 10.066 7.5.993 0 1.953-.138 2.858-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88"/></svg>
+              </button>
+            </div>
+            <p id="passwordError" class="hidden text-[11px] text-ballotred mt-1.5 font-mono">Enter your password to continue.</p>
+          </div>
+
+          <div class="flex items-center justify-between text-[12px] font-mono">
+            <label class="flex items-center gap-2 text-ink/70 cursor-pointer">
+              <input type="checkbox" class="rounded-sm accent-[#C08A52]">
+              Remember this device
+            </label>
+            <a href="#" id="forgotPasswordLink" class="text-teal hover:text-gold transition-colors">Forgot password?</a>
+          </div>
+
+          <button
+            type="submit" id="submitBtn"
+            class="focus-ring w-full flex items-center justify-center gap-2 bg-gold text-ink font-semibold py-3 rounded-sm hover:bg-gold/90 transition-colors font-sans text-sm"
+          >
+            <span id="submitLabel">Verify &amp; continue</span>
+          </button>
+
+          <p id="formNotice" class="hidden text-[12px] font-mono text-ink/60 text-center"></p>
+        </form>
+
+        <div class="tick-line my-5"></div>
+
+        <div class="flex items-center justify-between text-[11px] text-ink/50 font-mono">
+          <span>SESSION: UNVERIFIED</span>
+          <span id="slipTime">--:--:--</span>
+        </div>
+
+        <div class="barcode mt-4"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="border-t border-white/10">
+  <div class="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+      <span class="font-mono text-teal">&gt;</span>
+      <span class="font-mono font-semibold text-paper text-sm">COSSA_VOTE</span>
+    </div>
+    <p class="text-paperdim text-xs font-mono">© 2026 COSSA Electoral Committee</p>
+  </div>
+</footer>
+
+<!-- ===================== FORGOT PASSWORD MODAL ===================== -->
+<div id="forgotPasswordModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4">
+  <div id="forgotPasswordOverlay" class="absolute inset-0 bg-black/60"></div>
+  <div class="relative bg-paper rounded-sm p-6 w-full max-w-sm shadow-xl">
+
+    <!-- Step 1: request a code -->
+    <div id="fpStepRequest">
+      <h2 class="font-serif text-lg text-ink mb-1">Reset your password</h2>
+      <p class="text-ink/60 text-sm mb-4">Enter your matric number and we'll email you a reset code.</p>
+      <form id="fpRequestForm" class="space-y-4">
+        <div>
+          <label class="block font-mono text-[11px] uppercase tracking-widest text-ink/60 mb-2">Matric number</label>
+          <input id="fpMatricInput" type="text" required class="w-full rounded-sm px-4 py-2.5 font-mono text-ink/60 text-sm border border-ink/20 bg-white focus:outline-none focus:border-gold">
+        </div>
+        <p id="fpRequestError" class="hidden text-ballotred text-sm"></p>
+        <p id="fpRequestNotice" class="hidden text-good text-sm"></p>
+        <div class="flex justify-end gap-3 pt-1">
+          <button type="button" id="fpCancelBtn" class="px-4 py-2.5 rounded-sm border border-ink/20 hover:border-ink/40 transition-colors font-mono text-[12px] uppercase tracking-wide text-ink">Cancel</button>
+          <button type="submit" id="fpRequestSubmitBtn" class="px-5 py-2.5 rounded-sm bg-gold text-ink font-semibold hover:bg-gold/90 transition-colors font-mono text-[12px] uppercase tracking-wide">Send code</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Step 2: enter code + new password -->
+    <div id="fpStepReset" class="hidden">
+      <h2 class="font-serif text-lg text-ink mb-1">Enter your reset code</h2>
+      <p class="text-ink/60 text-sm mb-4">Check your email for the 6-digit code, then set a new password.</p>
+      <form id="fpResetForm" class="space-y-4">
+        <div>
+          <label class="block font-mono text-[11px] uppercase tracking-widest text-ink/60 mb-2">Reset code</label>
+          <input id="fpCodeInput" type="text" inputmode="numeric" maxlength="6" required class="w-full rounded-sm px-4 py-2.5 font-mono text-sm text-ink/60 border border-ink/20 bg-white focus:outline-none focus:border-gold tracking-widest">
+        </div>
+        <div>
+          <label class="block font-mono text-[11px] uppercase tracking-widest text-ink/60 mb-2">New password</label>
+          <input id="fpNewPasswordInput" type="password" required minlength="8" class="w-full rounded-sm px-4 py-2.5 font-mono text-sm text-ink/60 border border-ink/20 bg-white focus:outline-none focus:border-gold">
+          <p class="text-ink/50 text-[11px] font-mono mt-1.5">At least 8 characters.</p>
+        </div>
+        <p id="fpResetError" class="hidden text-ballotred text-sm"></p>
+        <p id="fpResetSuccess" class="hidden text-good text-sm"></p>
+        <div class="flex items-center justify-between pt-1">
+          <button type="button" id="fpResendBtn" class="text-teal hover:text-gold transition-colors font-mono text-[12px] uppercase tracking-wide">Resend code</button>
+          <div class="flex gap-3">
+            <button type="button" id="fpBackBtn" class="px-4 py-2.5 rounded-sm border border-ink/20 hover:border-ink/40 transition-colors font-mono text-[12px] uppercase tracking-wide text-ink">Back</button>
+            <button type="submit" id="fpResetSubmitBtn" class="px-5 py-2.5 rounded-sm bg-gold text-ink font-semibold hover:bg-gold/90 transition-colors font-mono text-[12px] uppercase tracking-wide">Update password</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script >
+   // Live clock on the verification slip
+  const slipTime = document.getElementById('slipTime');
+  function tickClock(){
+    slipTime.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  // Password visibility toggle
+  const toggleBtn = document.getElementById('togglePassword');
+  const passwordInput = document.getElementById('password');
+  const eyeOpen = document.getElementById('eyeOpen');
+  const eyeClosed = document.getElementById('eyeClosed');
+  toggleBtn.addEventListener('click', () => {
+    const isPassword = passwordInput.type === 'password';
+    passwordInput.type = isPassword ? 'text' : 'password';
+    eyeOpen.classList.toggle('hidden', isPassword);
+    eyeClosed.classList.toggle('hidden', !isPassword);
+    toggleBtn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+  });
+
+  // Point this at your running backend (see backend/README.md).
+  const API_BASE = 'https://cossa-vote-website-2.onrender.com/api';
+
+  // Basic client-side validation + real submit
+  const form = document.getElementById('loginForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const submitLabel = document.getElementById('submitLabel');
+  const formNotice = document.getElementById('formNotice');
+
+  const fields = {
+    matric: { input: document.getElementById('matric'), error: document.getElementById('matricError') },
+    email: { input: document.getElementById('email'), error: document.getElementById('emailError') },
+    password: { input: document.getElementById('password'), error: document.getElementById('passwordError') },
+  };
+
+  function isValidEmail(value){
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    let valid = true;
+
+    if (!fields.matric.input.value.trim()){
+      fields.matric.error.classList.remove('hidden');
+      fields.matric.input.classList.add('border-ballotred');
+      valid = false;
+    } else {
+      fields.matric.error.classList.add('hidden');
+      fields.matric.input.classList.remove('border-ballotred');
+    }
+
+    if (!isValidEmail(fields.email.input.value.trim())){
+      fields.email.error.classList.remove('hidden');
+      fields.email.input.classList.add('border-ballotred');
+      valid = false;
+    } else {
+      fields.email.error.classList.add('hidden');
+      fields.email.input.classList.remove('border-ballotred');
+    }
+
+    if (!fields.password.input.value){
+      fields.password.error.classList.remove('hidden');
+      fields.password.input.classList.add('border-ballotred');
+      valid = false;
+    } else {
+      fields.password.error.classList.add('hidden');
+      fields.password.input.classList.remove('border-ballotred');
+    }
+
+    if (!valid){
+      formNotice.textContent = 'Please correct the fields above.';
+      formNotice.classList.remove('hidden');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitLabel.textContent = 'Verifying…';
+    formNotice.classList.add('hidden');
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matric: fields.matric.input.value.trim(),
+          password: fields.password.input.value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed.');
+
+      localStorage.setItem('cossaVoterToken', data.token);
+      localStorage.setItem('cossaVoterName', data.name);
+      window.location.href = 'user.html';
+    } catch (err) {
+      formNotice.textContent = err.message;
+      formNotice.classList.remove('hidden');
+      submitLabel.textContent = 'Verify & continue';
+      submitBtn.disabled = false;
+    }
+  });
+
+  // ---------- Forgot password modal ----------
+  const fpModal = document.getElementById('forgotPasswordModal');
+  const fpStepRequest = document.getElementById('fpStepRequest');
+  const fpStepReset = document.getElementById('fpStepReset');
+  const fpRequestForm = document.getElementById('fpRequestForm');
+  const fpResetForm = document.getElementById('fpResetForm');
+  const fpMatricInput = document.getElementById('fpMatricInput');
+  const fpRequestError = document.getElementById('fpRequestError');
+  const fpRequestNotice = document.getElementById('fpRequestNotice');
+  const fpResetError = document.getElementById('fpResetError');
+  const fpResetSuccess = document.getElementById('fpResetSuccess');
+  let fpMatric = '';
+
+  function openForgotPasswordModal(){
+    fpMatric = fields.matric.input.value.trim();
+    fpMatricInput.value = fpMatric;
+    fpRequestError.classList.add('hidden');
+    fpRequestNotice.classList.add('hidden');
+    fpResetError.classList.add('hidden');
+    fpResetSuccess.classList.add('hidden');
+    fpResetForm.reset();
+    fpStepRequest.classList.remove('hidden');
+    fpStepReset.classList.add('hidden');
+    fpModal.classList.remove('hidden');
+  }
+  function closeForgotPasswordModal(){
+    fpModal.classList.add('hidden');
+  }
+
+  document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    openForgotPasswordModal();
+  });
+  document.getElementById('fpCancelBtn').addEventListener('click', closeForgotPasswordModal);
+  document.getElementById('forgotPasswordOverlay').addEventListener('click', closeForgotPasswordModal);
+  document.getElementById('fpBackBtn').addEventListener('click', () => {
+    fpStepReset.classList.add('hidden');
+    fpStepRequest.classList.remove('hidden');
+  });
+
+  async function sendResetCode(matric, { isResend } = {}){
+    const path = isResend ? '/auth/forgot-password/resend' : '/auth/forgot-password';
+    const res = await fetch(`${API_BASE}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matric }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Something went wrong.');
+    return data;
+  }
+
+  fpRequestForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    fpRequestError.classList.add('hidden');
+    fpRequestNotice.classList.add('hidden');
+
+    fpMatric = fpMatricInput.value.trim();
+    if (!fpMatric) return;
+
+    const btn = document.getElementById('fpRequestSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+
+    try {
+      const data = await sendResetCode(fpMatric);
+      fpStepRequest.classList.add('hidden');
+      fpStepReset.classList.remove('hidden');
+    } catch (err) {
+      fpRequestError.textContent = err.message;
+      fpRequestError.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send code';
+    }
+  });
+
+  document.getElementById('fpResendBtn').addEventListener('click', async () => {
+    fpResetError.classList.add('hidden');
+    const btn = document.getElementById('fpResendBtn');
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = 'Sending…';
+
+    try {
+      await sendResetCode(fpMatric, { isResend: true });
+      btn.textContent = 'Code resent';
+      setTimeout(() => { btn.textContent = originalText; }, 3000);
+    } catch (err) {
+      fpResetError.textContent = err.message;
+      fpResetError.classList.remove('hidden');
+      btn.textContent = originalText;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  fpResetForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    fpResetError.classList.add('hidden');
+    fpResetSuccess.classList.add('hidden');
+
+    const code = document.getElementById('fpCodeInput').value.trim();
+    const newPassword = document.getElementById('fpNewPasswordInput').value;
+    if (!code || !newPassword) return;
+    if (newPassword.length < 8) {
+      fpResetError.textContent = 'Password must be at least 8 characters.';
+      fpResetError.classList.remove('hidden');
+      return;
+    }
+
+    const btn = document.getElementById('fpResetSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Updating…';
+
+    try {
+      const res = await fetch(`${API_BASE}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matric: fpMatric, code, newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not reset your password.');
+
+      fpResetSuccess.textContent = 'Password updated — you can now log in.';
+      fpResetSuccess.classList.remove('hidden');
+      fields.matric.input.value = fpMatric;
+      setTimeout(closeForgotPasswordModal, 1800);
+    } catch (err) {
+      fpResetError.textContent = err.message;
+      fpResetError.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Update password';
+    }
+  });
+
+</script>
+
+
+</body>
+</html>
