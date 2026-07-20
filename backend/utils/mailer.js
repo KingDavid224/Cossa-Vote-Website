@@ -1,45 +1,50 @@
-// Sends transactional email via Brevo's HTTP API (https://brevo.com).
+// Sends transactional email via Resend's HTTP API (https://resend.com).
 //
 // We use plain HTTPS instead of SMTP/nodemailer because most cloud hosts
 // (Render's free tier included) block outbound SMTP ports 25/465/587,
-// which silently breaks OTP delivery. Brevo's REST API only needs port
+// which silently breaks OTP delivery. Resend's REST API only needs port
 // 443, so it works everywhere — including Render's free plan.
 //
-// Unlike some providers, Brevo only requires you to verify a single
-// sender email address (not a whole domain) before you can send to any
-// recipient, which makes it a good fit if you don't have a custom domain.
+// Setup:
+//   1. Sign up free at https://resend.com
+//   2. Create an API key: https://resend.com/api-keys
+//   3. Verify a sender:
+//        - Fastest (no domain needed): use 'onboarding@resend.dev' as
+//          EMAIL_FROM. This only works for sending to the email address
+//          you signed up to Resend with, so it's ONLY good for your own
+//          testing — not for real students.
+//        - For real use: add + verify your own domain under
+//          https://resend.com/domains (a few DNS records, takes minutes to
+//          a few hours to verify), then set EMAIL_FROM to something like
+//          'noreply@yourdomain.com'.
 //
 // Env vars needed:
-//   BREVO_API_KEY   - from https://app.brevo.com/settings/keys/api
-//   EMAIL_FROM      - the address you verified as a sender in Brevo,
-//                      e.g. 'youraddress@gmail.com'
+//   RESEND_API_KEY  - from https://resend.com/api-keys
+//   EMAIL_FROM      - a verified sender/domain address in Resend
 //   EMAIL_FROM_NAME - display name, e.g. 'COSSA Vote'
 
-const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+const RESEND_API_URL = 'https://api.resend.com/emails';
 
 async function sendEmail({ to, subject, text, html }) {
-  const res = await fetch(BREVO_API_URL, {
+  const fromName = process.env.EMAIL_FROM_NAME || 'COSSA Vote';
+  const res = await fetch(RESEND_API_URL, {
     method: 'POST',
     headers: {
-      'api-key': process.env.BREVO_API_KEY,
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
       'Content-Type': 'application/json',
-      Accept: 'application/json',
     },
     body: JSON.stringify({
-      sender: {
-        email: process.env.EMAIL_FROM,
-        name: process.env.EMAIL_FROM_NAME || 'COSSA Vote',
-      },
-      to: [{ email: to }],
+      from: `${fromName} <${process.env.EMAIL_FROM}>`,
+      to: [to],
       subject,
-      textContent: text,
-      ...(html ? { htmlContent: html } : {}),
+      text,
+      ...(html ? { html } : {}),
     }),
   });
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`Brevo API error (${res.status}): ${body}`);
+    throw new Error(`Resend API error (${res.status}): ${body}`);
   }
 
   return res.json();
